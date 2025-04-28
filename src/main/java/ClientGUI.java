@@ -99,10 +99,13 @@ public class ClientGUI extends UnicastRemoteObject implements ClientListener {
         // Set focus on the username field initially
         SwingUtilities.invokeLater(userField::requestFocusInWindow);
 
-        int result = JOptionPane.showConfirmDialog(null, panel, "Login",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        // Custom options for the dialog
+        Object[] options = {"Login", "Create Account", "Cancel"};
 
-        if (result == JOptionPane.OK_OPTION) {
+        int result = JOptionPane.showOptionDialog(null, panel, "Login or Register",
+                JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+
+        if (result == JOptionPane.YES_OPTION) { // Login
             String username = userField.getText().trim();
             String password = new String(passField.getPassword());
 
@@ -125,6 +128,78 @@ public class ClientGUI extends UnicastRemoteObject implements ClientListener {
                 e.printStackTrace();
                 JOptionPane.showMessageDialog(null, "Error connecting to server: " + e.getMessage(), "Login Error", JOptionPane.ERROR_MESSAGE);
                 return false; // Exit on connection error
+            }
+        } else if (result == JOptionPane.NO_OPTION) { // Create Account
+            if (showCreateAccountDialog()) {
+                // If account creation is successful, re-show the login dialog
+                JOptionPane.showMessageDialog(null, "Account created successfully! Please log in.", "Account Created", JOptionPane.INFORMATION_MESSAGE);
+                return showLoginDialog();
+            } else {
+                // If account creation failed or was cancelled, re-show the login dialog
+                return showLoginDialog();
+            }
+        } else { // Cancel or closed dialog
+            return false;
+        }
+    }
+
+    private boolean showCreateAccountDialog() {
+        JPanel panel = new JPanel(new GridLayout(3, 2, 5, 5)); // Increased rows for confirm password
+        JLabel userLabel = new JLabel("Username:");
+        JTextField userField = new JTextField();
+        JLabel passLabel = new JLabel("Password:");
+        JPasswordField passField = new JPasswordField();
+        JLabel confirmPassLabel = new JLabel("Confirm Password:");
+        JPasswordField confirmPassField = new JPasswordField();
+
+        panel.add(userLabel);
+        panel.add(userField);
+        panel.add(passLabel);
+        panel.add(passField);
+        panel.add(confirmPassLabel);
+        panel.add(confirmPassField);
+
+        // Set focus on the username field initially
+        SwingUtilities.invokeLater(userField::requestFocusInWindow);
+
+        int result = JOptionPane.showConfirmDialog(null, panel, "Create New Account",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String username = userField.getText().trim();
+            String password = new String(passField.getPassword());
+            String confirmPassword = new String(confirmPassField.getPassword());
+
+            if (username.isEmpty() || password.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Username and password cannot be empty.", "Creation Error", JOptionPane.ERROR_MESSAGE);
+                return showCreateAccountDialog(); // Re-show dialog
+            }
+
+            if (!password.equals(confirmPassword)) {
+                JOptionPane.showMessageDialog(null, "Passwords do not match.", "Creation Error", JOptionPane.ERROR_MESSAGE);
+                return showCreateAccountDialog(); // Re-show dialog
+            }
+
+            if (password.length() < 4) {
+                JOptionPane.showMessageDialog(null, "Password must be at least 4 characters long.", "Creation Error", JOptionPane.ERROR_MESSAGE);
+                return showCreateAccountDialog(); // Re-show dialog
+            }
+
+            try {
+                // Assuming you add a createUser method to your KanbanService
+                boolean created = service.createUser(username, password);
+                if (created) {
+                    return true; // Account creation successful
+                } else {
+                    // The service should ideally throw a specific exception or return false
+                    // if the username already exists, but we handle a generic false return here.
+                    JOptionPane.showMessageDialog(null, "Username already exists or another error occurred.", "Creation Failed", JOptionPane.ERROR_MESSAGE);
+                    return showCreateAccountDialog(); // Re-show dialog on failure
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error connecting to server: " + e.getMessage(), "Creation Error", JOptionPane.ERROR_MESSAGE);
+                return false; // Return false on connection error
             }
         } else {
             return false; // User cancelled

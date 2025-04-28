@@ -5,6 +5,7 @@ import java.util.List;
 public interface KanbanService extends Remote {
 
     User authenticateUser(String username, String password) throws RemoteException;
+    boolean createUser(String username, String password) throws RemoteException;
     List<User> getUsers() throws RemoteException;
 
     List<Board> getBoards() throws RemoteException;

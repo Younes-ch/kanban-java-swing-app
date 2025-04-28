@@ -40,6 +40,34 @@ public class KanbanServiceImpl extends UnicastRemoteObject implements KanbanServ
     }
 
     @Override
+    public boolean createUser(String username, String password) throws RemoteException {
+        // Basic validation (can be enhanced)
+        if (username == null || username.trim().isEmpty() || password == null || password.isEmpty()) {
+            throw new RemoteException("Username and password cannot be empty.");
+        }
+
+        String sql = "INSERT INTO users (username, password) VALUES (?, ?)";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, username.trim());
+            stmt.setString(2, password);
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0; // Return true if insertion was successful
+
+        } catch (SQLException e) {
+            // Check for unique constraint violation (PostgreSQL specific code '23505')
+            if ("23505".equals(e.getSQLState())) {
+                System.out.println("Attempt to create user with existing username: " + username);
+                return false; // Username already exists
+            } else {
+                e.printStackTrace();
+                throw new RemoteException("Error creating user: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    @Override
     public List<User> getUsers() throws RemoteException {
         List<User> users = new ArrayList<>();
         String sql = "SELECT id, username, created_at, updated_at FROM users ORDER BY username";
