@@ -1,0 +1,17 @@
+﻿services:
+  db:
+    image: postgres:latest
+    container_name: planny_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: planny
+      POSTGRES_DB: planny_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    driver: local
